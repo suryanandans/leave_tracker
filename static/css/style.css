@@ -1,13 +1,126 @@
+/* === Base Styling === */
 body {
-    background: #f4f9ff;
+    background-color: #f8fafd;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #2d3436;
+    padding-top: 20px;
 }
 
-.card {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
+/* === Headings === */
 h2 {
+    font-weight: 600;
+    color: #2d3436;
+    font-size: 28px;
+    text-shadow: 1px 1px 0 #ecf0f1;
+}
+
+/* === Cards === */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    transition: 0.3s ease-in-out;
+    background-color: #ffffff;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+    background-color: #ecf5ff;
+    color: #2c3e50;
     font-weight: bold;
-    color: #34495e;
+    font-size: 18px;
+    border-radius: 12px 12px 0 0;
+}
+
+/* === Inputs & Forms === */
+input[type="text"],
+input[type="file"],
+input[type="month"],
+input[type="date"],
+button {
+    border-radius: 8px !important;
+}
+
+input.form-control {
+    border: 1px solid #ced4da;
+    transition: all 0.3s ease;
+}
+
+input.form-control:focus {
+    border-color: #5dade2;
+    box-shadow: 0 0 0 0.2rem rgba(93, 173, 226, 0.25);
+}
+
+/* === Buttons === */
+.btn-primary {
+    background-color: #3498db;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-success {
+    background-color: #27ae60;
+    border: none;
+}
+
+.btn-success:hover {
+    background-color: #1e8449;
+}
+
+.btn-info {
+    background-color: #00bcd4;
+    border: none;
+}
+
+.btn-info:hover {
+    background-color: #00acc1;
+}
+
+/* === Result Boxes === */
+#resultBox, #filterResult {
+    background-color: #ffffff;
+    border: 1px solid #dfe6e9;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+
+/* === Tables === */
+table.table {
+    background-color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+table thead {
+    background-color: #d6eaf8;
+    color: #2c3e50;
+}
+
+table tbody tr:hover {
+    background-color: #f1f9ff;
+    transition: background-color 0.2s;
+}
+
+/* === Responsive Padding === */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .card-header {
+        font-size: 16px;
+    }
+
+    h2 {
+        font-size: 22px;
+    }
 }
