@@ -1,3 +1,11 @@
+// === FLATPICKR INITIALIZATION ===
+flatpickr("#sortMonth", {
+    dateFormat: "Y-m",
+    plugins: [new monthSelectPlugin({ shorthand: true, dateFormat: "Y-m", altFormat: "F Y" })]
+});
+flatpickr("#rangeStart", { dateFormat: "Y-m-d" });
+flatpickr("#rangeEnd", { dateFormat: "Y-m-d" });
+
 // === UPLOAD CSV FILE ===
 document.getElementById("csvUploadForm").addEventListener("submit", async function (e) {
     e.preventDefault();
@@ -18,146 +26,129 @@ document.getElementById("csvUploadForm").addEventListener("submit", async functi
 });
 
 
-// === SEARCH BY USERNAME OR FILTER ===
-document.getElementById("searchForm").addEventListener("submit", async function (e) {
+// === SEARCH BY USERNAME, MONTH, DATE RANGE ===
+document.getElementById('searchForm').addEventListener('submit', (e) => {
     e.preventDefault();
 
-    const form = e.target;
+    const username = e.target.username.value.trim();
+    const month = e.target.month.value;
+    const startDate = e.target.start_date.value;
+    const endDate = e.target.end_date.value;
+    const specificDate = e.target.date.value;
 
-    const username = form.username.value.trim();
-    const month = form.month.value;
-    const date = form.date.value;
-    const startDate = form.start_date.value;
-    const endDate = form.end_date.value;
+    let url = `/leaves?username=${encodeURIComponent(username)}`;
+
+    if (month) {
+        url += `&month=${month}`;
+    } else if (startDate && endDate) {
+        url += `&start_date=${startDate}&end_date=${endDate}`;
+    } else if (specificDate) {
+        url += `&start_date=${specificDate}&end_date=${specificDate}`;
+    }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            displayResults(data, 'resultBox');
+        })
+        .catch(err => {
+            console.error('Search error:', err);
+        });
+});
+
+// === FILTER FORM SUBMIT ===
+document.getElementById('filterForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+
+    const startDate = this.start_date.value;
+    const endDate = this.end_date.value;
+
+    const usernameInput = document.querySelector('#searchForm input[name="username"]');
+    const username = usernameInput ? usernameInput.value.trim() : '';
 
     if (!username) {
-        alert("Please enter a username.");
+        alert('Please enter a username before filtering.');
         return;
     }
 
     const params = new URLSearchParams();
-    params.append("username", username);
-    if (month) params.append("month", month);
-    if (date) params.append("date", date);
-    if (startDate && endDate) {
-        // If both start and end are given, use filter_by_date
-        params.append("start_date", startDate);
-        params.append("end_date", endDate);
+    params.append('username', username);
+    params.append('start_date', startDate);
+    params.append('end_date', endDate);
 
-        try {
-            const response = await fetch(`/filter_by_date?${params.toString()}`);
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.message || "Filter failed");
-
-            displayLeaves(data);
-        } catch (error) {
-            document.getElementById("resultBox").innerHTML = `
-                <div class="alert alert-danger">${error.message}</div>
-            `;
-        }
-
-    } else {
-        // Otherwise fallback to search_leaves
-        try {
-            const response = await fetch(`/search_leaves?${params.toString()}`);
-            const data = await response.json();
-
-            if (!response.ok) throw new Error(data.message || "Search failed");
-
-            displayLeaves(data);
-        } catch (error) {
-            document.getElementById("resultBox").innerHTML = `
-                <div class="alert alert-danger">${error.message}</div>
-            `;
-        }
+    try {
+        const res = await fetch(`/leaves?${params}`);
+        const data = await res.json();
+        displayResults(data, 'filterResult');
+    } catch (err) {
+        console.error(err);
+        alert("Error fetching filtered results.");
     }
 });
 
-document.getElementById('filterForm').addEventListener('submit', async function (e) {
-  e.preventDefault();
 
-  const startDate = this.start_date.value;
-  const endDate = this.end_date.value;
+// === SHOW ALL LEAVES WITH SORTING ===
+document.getElementById('showAllBtn').addEventListener('click', () => {
+    const sortOption = document.getElementById('sortSelect')?.value;
+    const sortMonth = document.getElementById('sortMonth')?.value;
+    const rangeStart = document.getElementById('rangeStart')?.value;
+    const rangeEnd = document.getElementById('rangeEnd')?.value;
 
-  // ✅ Get the username from the search form
-  const usernameInput = document.querySelector('#searchForm input[name="username"]');
-  const username = usernameInput ? usernameInput.value.trim() : '';
+    let url = '/leaves';
 
-  // ❗ Ensure username is provided
-  if (!username) {
-    alert('Please enter a username before filtering.');
-    return;
-  }
-
-  // ✅ Build query parameters
-  const params = new URLSearchParams();
-  params.append('username', username);
-  params.append('start_date', startDate);
-  params.append('end_date', endDate);
-
-  try {
-    const res = await fetch(`/filter_by_date?${params}`);
-    const data = await res.json();
-
-    const box = document.getElementById('filterResult');
-    if (!data || data.length === 0) {
-      box.innerHTML = `<div class="alert alert-warning">No leaves found for <b>${username}</b> in the selected date range.</div>`;
-    } else {
-      box.innerHTML = `
-        <table class="table table-bordered table-striped">
-          <thead>
-            <tr><th>Name</th><th>Date</th><th>Leave Type</th></tr>
-          </thead>
-          <tbody>
-            ${data.map(d => `
-              <tr>
-                <td>${d.username}</td>
-                <td>${d.date}</td>
-                <td>${d.leave_type}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
-      `;
+    if (sortOption === 'month' && sortMonth) {
+        url += `?month=${sortMonth}`;
+    } else if (sortOption === 'range' && rangeStart && rangeEnd) {
+        url += `?start_date=${rangeStart}&end_date=${rangeEnd}`;
     }
-  } catch (err) {
-    console.error(err);
-    alert("Error fetching filtered results.");
-  }
+
+    fetch(url)
+        .then(res => res.json())
+        .then(data => {
+            displayResults(data, 'allLeavesResult');
+        })
+        .catch(err => {
+            console.error('Error loading leaves:', err);
+        });
 });
 
-
-
-
-// === DISPLAY SEARCH RESULT TABLE ===
-function displayLeaves(leaves) {
-    if (!leaves.length) {
-        document.getElementById("resultBox").innerHTML = `
-            <div class="alert alert-warning">No leave records found.</div>
-        `;
+// === DISPLAY RESULTS ===
+function displayResults(data, containerId) {
+    const container = document.getElementById(containerId);
+    if (!Array.isArray(data) || data.length === 0) {
+        container.innerHTML = '<p class="text-muted">No records found.</p>';
         return;
     }
 
-    let html = `<table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Date</th>
-                <th>Leave Type</th>
-            </tr>
-        </thead>
-        <tbody>`;
+    let html = `
+        <table class="table table-bordered table-striped">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Date</th>
+                    <th>Leave Type</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
 
-    leaves.forEach(leave => {
+    data.forEach(item => {
         html += `
             <tr>
-                <td>${leave.username}</td>
-                <td>${leave.date}</td>
-                <td>${leave.leave_type}</td>
+                <td>${item.username}</td>
+                <td>${item.date}</td>
+                <td>${item.leave_type}</td>
             </tr>
         `;
     });
 
-    html += `</tbody></table>`;
-    document.getElementById("resultBox").innerHTML = html;
+    html += '</tbody></table>';
+    container.innerHTML = html;
 }
+
+// === HANDLE FILTER UI VISIBILITY ===
+document.getElementById("sortSelect").addEventListener("change", function () {
+    const value = this.value;
+    document.getElementById("monthFilter").style.display = value === "month" ? "block" : "none";
+    document.getElementById("rangeFilter").style.display = value === "range" ? "block" : "none";
+});

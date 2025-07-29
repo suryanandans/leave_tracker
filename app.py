@@ -30,6 +30,25 @@ class LeaveRecord(db.Model):
 def index():
     return render_template('index.html')
 
+@app.route('/all_leaves', methods=['GET'])
+def all_leaves():
+    try:
+        records = LeaveRecord.query.order_by(LeaveRecord.leave_date.asc()).all()
+
+        return jsonify([
+            {
+                'username': r.username,
+                'date': r.leave_date.strftime('%Y-%m-%d'),
+                'leave_type': r.leave_type
+            } for r in records
+        ])
+    except Exception as e:
+        print("Error in /all_leaves:", e)
+        return jsonify({'message': f'Server error: {str(e)}'}), 500
+
+
+
+from sqlalchemy.exc import IntegrityError
 
 @app.route('/upload_csv', methods=['POST'])
 def upload_csv():
@@ -43,28 +62,36 @@ def upload_csv():
         csv_input = csv.DictReader(stream)
 
         count = 0
+        skipped = 0
+
         for row in csv_input:
-            username = row['Username']
-            date_str = row['Date']
-            leave_type = row['LeaveType']
+            username = row['Username'].strip()
+            date_str = row['Date'].strip()
+            leave_type = row['LeaveType'].strip()
 
             try:
                 leave_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             except ValueError:
-                continue  # Skip invalid date
+                skipped += 1
+                continue  # skip invalid dates
 
+            # Create record
             record = LeaveRecord(
                 username=username,
                 leave_date=leave_date,
                 leave_type=leave_type
             )
             db.session.add(record)
-            count += 1
 
-        db.session.commit()
+            try:
+                db.session.commit()
+                count += 1
+            except IntegrityError:
+                db.session.rollback()
+                skipped += 1  # duplicate or invalid enum, etc.
 
         return jsonify({
-            'message': f'{count} leave records uploaded successfully.'
+            'message': f'{count} records uploaded successfully. {skipped} entries skipped (duplicates or invalid).'
         })
 
     except Exception as e:
@@ -72,27 +99,31 @@ def upload_csv():
 
 
 
-@app.route('/search_leaves', methods=['GET'])
-def search_leaves():
+
+@app.route('/leaves', methods=['GET'])
+def get_leaves():
     username = request.args.get('username')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-    month = request.args.get('month')
+    month = request.args.get('month')  # Format: YYYY-MM
 
     query = LeaveRecord.query
 
+    # Optional username filter
     if username:
         query = query.filter(LeaveRecord.username.ilike(f"%{username}%"))
 
+    # Optional date range filter
     if start_date and end_date:
         try:
             start = datetime.strptime(start_date, "%Y-%m-%d").date()
             end = datetime.strptime(end_date, "%Y-%m-%d").date()
             query = query.filter(LeaveRecord.leave_date.between(start, end))
         except ValueError:
-            return jsonify({'message': 'Invalid date format'}), 400
+            return jsonify({"message": "Invalid date format"}), 400
 
-    elif month:
+    # Optional month filter
+    if month:
         try:
             year, mon = map(int, month.split('-'))
             query = query.filter(
@@ -100,8 +131,9 @@ def search_leaves():
                 db.extract('month', LeaveRecord.leave_date) == mon
             )
         except Exception:
-            return jsonify({'message': 'Invalid month format'}), 400
+            return jsonify({"message": "Invalid month format"}), 400
 
+    # Final sorted result
     results = query.order_by(LeaveRecord.leave_date.asc()).all()
 
     return jsonify([
@@ -109,39 +141,11 @@ def search_leaves():
             'username': r.username,
             'date': r.leave_date.strftime('%Y-%m-%d'),
             'leave_type': r.leave_type
-        }
-        for r in results
+        } for r in results
     ])
 
 
-@app.route('/filter_by_date', methods=['GET'])
-def filter_by_date():
-    username = request.args.get('username')
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
 
-    if not username or not start_date or not end_date:
-        return jsonify({"error": "Missing required parameters."}), 400
-
-    try:
-        start = datetime.strptime(start_date, "%Y-%m-%d").date()
-        end = datetime.strptime(end_date, "%Y-%m-%d").date()
-    except ValueError:
-        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD."}), 400
-
-    # 🔍 Filter by username (case-insensitive) and date range
-    records = LeaveRecord.query.filter(
-        LeaveRecord.username.ilike(f"%{username}%"),  # case-insensitive match
-        LeaveRecord.leave_date.between(start, end)
-    ).order_by(LeaveRecord.leave_date.asc()).all()
-
-    return jsonify([
-        {
-            'username': r.username,
-            'date': r.leave_date.strftime('%Y-%m-%d'),
-            'leave_type': r.leave_type
-        } for r in records
-    ])
 
 
 if __name__ == '__main__':
