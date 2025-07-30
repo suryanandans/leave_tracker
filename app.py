@@ -11,6 +11,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 import io
 import csv
 from sqlalchemy import or_
+from functools import wraps
 
 app = Flask(__name__)
 app.secret_key = 'leave_tracker_secret_key'
@@ -44,6 +45,15 @@ class LeaveRecord(db.Model):
     leave_type = db.Column(db.Enum('Authorised', 'Medical', 'Weekend', 'Personal'), nullable=False)
     uploaded_at = db.Column(db.DateTime, default=db.func.now())
 
+    
+    
+def login_required_api(f):
+        @wraps(f)
+        def decorated_function(*args,**kwargs):
+            if 'admin' not in session:
+                return jsonify({"Error " : "Unauthorized Access!Log in for access"}), 401
+            return f(*args,**kwargs)
+        return decorated_function
 
 @app.route('/')
 def home():
@@ -56,7 +66,8 @@ def dashboard():
         flash("Login to continue")
         return redirect(url_for('login'))
     else:
-        return render_template('index.html')
+        admin = AdminUser.query.filter_by(username=session['admin']).first()
+        return render_template('index.html',username=admin.username, email=admin.email)
     
 
 
@@ -109,6 +120,7 @@ def login():
     
 
 @app.route('/all_leaves', methods=['GET'])
+@login_required_api
 def all_leaves():
     try:
         records = LeaveRecord.query.order_by(LeaveRecord.leave_date.asc()).all()
