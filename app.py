@@ -168,6 +168,11 @@ def upload_csv():
                 skipped += 1
                 continue  # skip invalid dates
 
+            existing=LeaveRecord.query.filter_by(username=username,leave_date=leave_date).first()
+            if existing:
+                skipped+=1
+                continue
+
             # Create record
             record = LeaveRecord(
                 username=username,
