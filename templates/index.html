@@ -19,6 +19,13 @@
 <div class="container py-4">
     <h2 class="text-center mb-4">📅 Leave Tracker System</h2>
 
+  <div class="d-flex justify-content-end align-items-center p-3">
+  {% if username %}
+    <span class="me-3">Welcome, <strong>{{ username }}</strong></span>
+    <a href="/logout" class="btn btn-danger">Logout</a>
+  {% endif %}
+</div>
+
     <!-- Upload CSV -->
     <div class="card mb-4">
         <div class="card-header">Upload Leave CSV</div>
