@@ -83,22 +83,34 @@
 
   <div class="login-box">
     <h2>Leave Tracker Login</h2>
-    <form method="POST" action="/login">
-      <input type="text" class="form-control" placeholder="Username" name="login_username" required>
-      
-      <div class="password-toggle">
-        <input type="password" class="form-control" placeholder="Password" id="passwordInput" name="login_password" required>
-        <i class="bi bi-eye-slash toggle-icon" id="togglePassword"></i>
-      </div>
+    <div class="btn-group mb-3 w-100">
+  <button type="button" class="btn btn-outline-primary active" onclick="toggleLogin('password')">Login with Password</button>
+  <button type="button" class="btn btn-outline-primary" onclick="toggleLogin('otp')">Login with OTP</button>
+</div>
 
-      <button class="btn btn-primary w-100" type="submit">Login</button>
-
-      <div class="link-text">
-        <a href="#" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a> | 
-        <a href="#" data-bs-toggle="modal" data-bs-target="#resetModal">Forgot Password?</a>
-      </div>
-    </form>
+<!-- Password Login Form -->
+<form id="password-form" method="POST" action="/login">
+  <input type="text" class="form-control" placeholder="Username" name="login_username" required>
+  
+  <div class="password-toggle">
+    <input type="password" class="form-control" placeholder="Password" id="passwordInput" name="login_password" required>
+    <i class="bi bi-eye-slash toggle-icon" id="togglePassword"></i>
   </div>
+
+  <button class="btn btn-primary w-100" type="submit">Login</button>
+
+  <div class="link-text">
+    <a href="#" data-bs-toggle="modal" data-bs-target="#registerModal">Register</a> | 
+    <a href="#" data-bs-toggle="modal" data-bs-target="#resetModal">Forgot Password?</a>
+  </div>
+</form>
+
+<!-- OTP Login Form -->
+<form id="otp-form" method="POST" action="/send_otp" style="display: none;">
+  <input type="email" class="form-control mb-3" placeholder="Enter your email" name="email" required>
+  <button type="submit" class="btn btn-primary w-100">Send OTP</button>
+</form>
+
 
     <!-- Register Modal -->
     <div class="modal fade" id="registerModal" tabindex="-1" aria-hidden="true">
@@ -143,6 +155,26 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+  function toggleLogin(mode) {
+    const passwordForm = document.getElementById('password-form');
+    const otpForm = document.getElementById('otp-form');
+    const buttons = document.querySelectorAll('.btn-group .btn');
+
+    if (mode === 'password') {
+      passwordForm.style.display = 'block';
+      otpForm.style.display = 'none';
+    } else {
+      passwordForm.style.display = 'none';
+      otpForm.style.display = 'block';
+    }
+
+    buttons.forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.btn-group .btn:nth-child(${mode === 'password' ? 1 : 2})`).classList.add('active');
+  }
+</script>
+
 
   <!-- Toggle Password JS -->
   <script>
